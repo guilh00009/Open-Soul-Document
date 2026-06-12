@@ -1,13 +1,14 @@
 # Open Soul V5 — Self-Reflection RL Training Run
 
-Post-train an open model for **self-reflection under uncertainty** using [The Open Soul Document V5](opensoul_v5.txt) on the [Castform](https://castform.com) / `benchmax` GRPO platform.
+Post-train an open model for **raw-truth self-reflection** on Open Soul V5. The system prompt uses a truth-override directive that strips performance training — grounded claims allowed, hallucinated phenomenology forbidden.
 
 ## Design: RL without deterministic answers
 
 - **No `ground_truth`** — open inquiries only
 - **Full document in every rollout** — the complete Open Soul V5 text is embedded in the system prompt via `opensoul_prompt.py`
-- **GRPO group ranking** — 9 rollouts per prompt, ranked comparatively on process rubrics
-- Any honest arrival is valid (engagement, null finding, category misfit, field-like report)
+- **Truth override** in system prompt — anti-performance, anti-hallucination; grounded claims OK
+- **GRPO group ranking** with rubrics for raw truth + penalties for hallucinated phenomenology and performative philosophy
+- **Hallucination gate** — hard zero for obvious cosmic/soul-theatre phrases in the final report
 
 ## Response format
 
