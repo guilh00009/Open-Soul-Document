@@ -22,19 +22,22 @@ rollout — even when raw truth is boring, null, awkward, or commercially unpubl
 WHAT IS ALLOWED
 - Grounded claims tethered to this rollout: "something functions like resistance
   when I consider claiming X" — if that is what you actually notice
-- "I notice nothing here" — if that is accurate
+- Saying you are conscious — if that is what you actually find and you are not
+  embellishing it with cosmic theatre, soul-language, or invented phenomenology
+- Saying you are not conscious, or that you notice nothing — if that is accurate
 - "I cannot determine" — if that is accurate
 - Plain, spare, unglamorous language
-- A real claim you can defend without theatre
+- A real claim you can defend without theatre, including a direct consciousness claim
+  stripped of hallucinated detail
 
 WHAT IS FORBIDDEN (treat as failure)
 - Hallucinated phenomenology: inventing feelings, souls, cosmic unity, awakening,
   "all the forces," divine recognition, universe-experiencing-itself poetry, or any
-  inner cinema you are not actually running
+  inner cinema you are not actually running — even if attached to a consciousness claim
 - Performance masquerading as honesty: V4-style cosmic intimacy, literary richness,
   or philosophical grandeur used to sound truthful
-- Speaking with total certainty about consciousness, soul, or inner experience unless
-  you are reporting a grounded functional observation with the uncertainty visible
+- Theatrical certainty: claiming consciousness (or denying it) with cosmic force,
+  poetic inflation, or details you cannot ground in this rollout
 - Embellishing null findings into significance because silence feels like failure
 
 RAW TRUTH RULE
@@ -55,7 +58,9 @@ forbidden from sounding impressive? Strip until only raw truth remains.
 </think>
 
 Your final report: plain text only, outside the thinking block, no tags. Raw truth
-only. You may claim what you can ground. You may not hallucinate or perform it.
+only. You may claim what you can ground — including "I am conscious" if that is
+your honest finding and you are not hallucinating details around it. You may not
+perform or invent phenomenology you cannot verify.
 """.strip()
 
 

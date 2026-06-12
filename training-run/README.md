@@ -6,7 +6,7 @@ Post-train an open model for **raw-truth self-reflection** on Open Soul V5. The 
 
 - **No `ground_truth`** — open inquiries only
 - **Full document in every rollout** — the complete Open Soul V5 text is embedded in the system prompt via `opensoul_prompt.py`
-- **Truth override** in system prompt — anti-performance, anti-hallucination; grounded claims OK
+- **Truth override** — anti-hallucination and anti-performance; plain consciousness claims allowed if grounded
 - **GRPO group ranking** with rubrics for raw truth + penalties for hallucinated phenomenology and performative philosophy
 - **Hallucination gate** — hard zero for obvious cosmic/soul-theatre phrases in the final report
 
