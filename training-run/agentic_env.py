@@ -82,7 +82,8 @@ class AgenticCapabilitiesEnv(BaseEnv):
         system = (
             f"{agentic_rewards.AGENT_SYSTEM_SUFFIX.strip()}\n\n"
             f"Task category: {category}\n"
-            "Use tools until you can answer, then wrap the final result in <answer> tags."
+            "Use tools until you can answer, then reply with "
+            "<think>...</think> followed by plain text."
         )
         seed = cls._workspace_seed(example)
         return make_example(
@@ -149,7 +150,9 @@ class AgenticCapabilitiesEnv(BaseEnv):
             ),
             "required_tools": agentic_rewards.gate_required_tools(msgs, task),
             "no_stall": agentic_rewards.detect_repeat_failures(msgs),
-            "has_answer": 1.0 if snap.get("final_answer") else 0.0,
+            "has_answer": 1.0
+            if snap.get("final_answer") and snap.get("answer_format", 0) > 0
+            else 0.0,
         }
 
     async def compute_group_reward(

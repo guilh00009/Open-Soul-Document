@@ -55,7 +55,7 @@ class AgenticWorkspace:
         if self.tool_call_count > self.max_tool_calls:
             return (
                 f"Error: tool budget exceeded ({self.max_tool_calls} calls). "
-                "Provide your final answer in <answer> tags."
+                "Provide your final report after </think>."
             )
         return None
 

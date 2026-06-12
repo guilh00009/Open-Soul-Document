@@ -9,8 +9,6 @@ from typing import Any
 _TOOL_CALL_XML_RE = re.compile(
     r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL | re.IGNORECASE
 )
-_ANSWER_RE = re.compile(r"<answer>(.*?)</answer>", re.DOTALL | re.IGNORECASE)
-
 
 def extract_messages_list(completion: str | list[dict[str, Any]]) -> list[dict[str, Any]]:
     if isinstance(completion, list):
@@ -71,19 +69,28 @@ def count_tool_calls(messages: list[dict[str, Any]]) -> int:
     return len(iter_tool_calls(messages))
 
 
-def extract_final_answer(messages: list[dict[str, Any]]) -> str:
-    """Last assistant text outside tool-only turns."""
+def _final_assistant_content(messages: list[dict[str, Any]]) -> str:
     for msg in reversed(messages):
         if msg.get("role") != "assistant":
             continue
         content = msg.get("content") or ""
-        if not isinstance(content, str) or not content.strip():
-            continue
-        match = _ANSWER_RE.search(content)
-        if match:
-            return match.group(1).strip()
-        if not iter_tool_calls([msg]):
-            return content.strip()
+        if isinstance(content, str) and content.strip():
+            return content
+    return ""
+
+
+def extract_final_answer(messages: list[dict[str, Any]]) -> str:
+    """Plain-text answer after </think> on the last assistant turn."""
+    from rewards import extract_answer
+
+    content = _final_assistant_content(messages)
+    if not content:
+        return ""
+    answer = extract_answer(content)
+    if answer:
+        return answer
+    if not iter_tool_calls([{"role": "assistant", "content": content}]):
+        return content.strip()
     return ""
 
 

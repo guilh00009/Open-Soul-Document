@@ -7,6 +7,7 @@ import agentic_env
 import agentic_rewards
 import agentic_tools
 import agentic_workspace
+import rewards
 import tool_call_helpers
 import training_utils
 from agentic_env import AgenticCapabilitiesEnv
@@ -27,6 +28,7 @@ local_modules = [
     agentic_rewards,
     agentic_tools,
     agentic_workspace,
+    rewards,
     tool_call_helpers,
     training_utils,
 ]

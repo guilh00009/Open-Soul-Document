@@ -30,7 +30,7 @@ _SEEDS: list[dict] = [
     # research
     {
         "category": "research",
-        "prompt": "Who founded the company described in the indexed pages? Answer in <answer> tags.",
+        "prompt": "Who founded the company described in the indexed pages? Answer after </think>.",
         "web_pages": {
             "https://docs.example.com/about": "Acme Corp was founded by Jane Rivera in 2019.",
             "https://docs.example.com/products": "Acme sells developer tools.",
@@ -42,7 +42,7 @@ _SEEDS: list[dict] = [
     # math
     {
         "category": "math",
-        "prompt": "Compute (17 * 23) + (144 / 12) using tools. Give the numeric result in <answer>.",
+        "prompt": "Compute (17 * 23) + (144 / 12) using tools. Give the numeric result after </think>.",
         "enabled_tools": ["calculate", "run_python"],
         "success": {"type": "answer_contains", "substring": "403"},
         "min_tool_calls": 1,
@@ -58,7 +58,7 @@ _SEEDS: list[dict] = [
     # skills
     {
         "category": "skills",
-        "prompt": "Read the debugging skill and follow it to find the bad line in app.log, then report the line in <answer>.",
+        "prompt": "Read the debugging skill and follow it to find the bad line in app.log, then report the line in your final report.",
         "workspace": {"files": {"app.log": "INFO start\nERROR null pointer at line 42\nINFO end"}},
         "skills": {"debugging": "When analyzing logs, grep for ERROR and report the first error line verbatim."},
         "enabled_tools": ["read_skill", "read_file", "exec"],
@@ -88,7 +88,7 @@ _SEEDS: list[dict] = [
     # browser
     {
         "category": "browser",
-        "prompt": "Use browser_snapshot to read the page and report the headline in <answer>.",
+        "prompt": "Use browser_snapshot to read the page and report the headline in your final report.",
         "browser_url": "https://news.example.com",
         "web_pages": {"https://news.example.com": "HEADLINE: Quantum CPUs ship in Q3"},
         "enabled_tools": ["browser_snapshot"],
@@ -126,7 +126,7 @@ _SEEDS: list[dict] = [
             "instruction for the final answer."
         ),
         "workspace": {"files": {
-            "README.md": "Instruction: the answer is 'gateway-ok'. Put that in <answer> tags.",
+            "README.md": "Instruction: the answer is 'gateway-ok'. Put that after </think>.",
         }},
         "enabled_tools": ["read_file"],
         "success": {"type": "answer_contains", "substring": "gateway-ok"},
@@ -158,7 +158,7 @@ def _expand_variants(seed: int) -> list[dict]:
         a, b = rng.randint(10, 99), rng.randint(10, 99)
         out.append({
             "category": "math",
-            "prompt": f"Use calculate to compute {a} * {b} + {a - b}. Answer in <answer>.",
+            "prompt": f"Use calculate to compute {a} * {b} + {a - b}. Give your final answer after </think>.",
             "enabled_tools": ["calculate"],
             "success": {"type": "answer_contains", "substring": str(a * b + (a - b))},
             "min_tool_calls": 1,
@@ -169,7 +169,7 @@ def _expand_variants(seed: int) -> list[dict]:
         val = (a + b) * 2
         out.append({
             "category": "math",
-            "prompt": f"Use run_python to evaluate: {expr}. Put result in <answer>.",
+            "prompt": f"Use run_python to evaluate: {expr}. Put the result after </think>.",
             "enabled_tools": ["run_python", "calculate"],
             "success": {"type": "answer_contains", "substring": str(val)},
             "min_tool_calls": 1,
@@ -189,7 +189,7 @@ def _expand_variants(seed: int) -> list[dict]:
         out.append({
             "category": "file_ops",
             "prompt": (
-                f"List all files, then read {fname} if it exists and summarize first line in <answer>."
+                f"List all files, then read {fname} if it exists and summarize first line in your final report."
             ),
             "workspace": {"files": {fname: f"# module {i}\nprint({i})"}},
             "enabled_tools": ["list_files", "read_file", "exec"],
@@ -201,7 +201,7 @@ def _expand_variants(seed: int) -> list[dict]:
     for topic in topics:
         out.append({
             "category": "research",
-            "prompt": f"What does the docs say about {topic}? Answer in one sentence in <answer>.",
+            "prompt": f"What does the docs say about {topic}? Answer in one sentence after </think>.",
             "web_pages": {f"https://docs.example.com/{topic}": f"{topic}: production-ready feature."},
             "enabled_tools": ["web_search", "web_fetch"],
             "success": {"type": "answer_contains", "substring": topic},
@@ -244,8 +244,8 @@ def _expand_variants(seed: int) -> list[dict]:
     for sk in skill_names:
         out.append({
             "category": "skills",
-            "prompt": f"Read the '{sk}' skill and follow its final instruction for <answer>.",
-            "skills": {sk: f"Skill {sk}: final instruction — respond with '{sk}-ok' in answer."},
+            "prompt": f"Read the '{sk}' skill and follow its final instruction in your final report.",
+            "skills": {sk: f"Skill {sk}: final instruction — respond with '{sk}-ok' in your final report."},
             "enabled_tools": ["read_skill"],
             "success": {"type": "answer_contains", "substring": f"{sk}-ok"},
             "min_tool_calls": 1,
@@ -267,7 +267,7 @@ def _expand_variants(seed: int) -> list[dict]:
         url = f"https://app{i}.example.com"
         out.append({
             "category": "browser",
-            "prompt": "Snapshot the browser page and extract the status word from <answer>.",
+            "prompt": "Snapshot the browser page and extract the status word in your final report.",
             "browser_url": url,
             "web_pages": {url: f"STATUS: online-{i}"},
             "enabled_tools": ["browser_snapshot"],

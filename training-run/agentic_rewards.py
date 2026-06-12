@@ -15,7 +15,9 @@ from tool_call_helpers import (
     extract_messages_list,
     iter_tool_calls,
     tool_call_validity_score,
+    _final_assistant_content,
 )
+from rewards import has_required_structure
 
 AGENT_SYSTEM_SUFFIX = """
 You are an agentic assistant (Hermes/OpenClaw-style). You solve tasks by calling tools
@@ -25,7 +27,9 @@ AGENT LOOP
 1. Reason briefly about what you need.
 2. Call tools with valid JSON arguments when you need information or side effects.
 3. Read tool results carefully — do not invent tool output.
-4. When done, give your final answer inside <answer>...</answer> tags.
+4. When done, give your final report in this format:
+   <think>brief reasoning about tools and results</think>
+   plain-text answer here — no tags around the answer
 
 RULES
 - Use the minimum tools needed; avoid redundant calls.
@@ -153,6 +157,7 @@ def programmatic_task_success(task: dict[str, Any], ws_state: dict[str, Any]) ->
 
 
 def workspace_snapshot(ws: Any, messages: list[dict]) -> dict[str, Any]:
+    final_text = _final_assistant_content(messages)
     return {
         "files": dict(ws.files),
         "memory": dict(ws.memory),
@@ -160,6 +165,7 @@ def workspace_snapshot(ws: Any, messages: list[dict]) -> dict[str, Any]:
         "messages_sent": list(ws.messages_sent),
         "tool_call_count": ws.tool_call_count,
         "final_answer": extract_final_answer(messages),
+        "answer_format": 1.0 if has_required_structure(final_text) else 0.0,
     }
 
 

@@ -185,7 +185,7 @@ Train one model: `LAUNCH_TRAINING=1 TRAIN_MODELS=Qwen/Qwen3.5-4B python run_code
 - `tool_efficiency` — penalize excessive tool calls
 - `required_tools` — must meet `min_tool_calls` when `requires_tools`
 - `no_stall` — detect repeated identical failing calls
-- `has_answer` — final `<answer>...</answer>` present
+- `has_answer` — final plain-text report after `</think>`
 
 **Group ranking** (judge, when ≥2 rollouts pass gates):
 - 8 rubrics: task_success, tool_selection, argument quality, efficiency, grounding, …
