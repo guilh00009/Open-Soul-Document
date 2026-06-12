@@ -74,6 +74,11 @@ if __name__ == "__main__":
 
     ensure_session()
 
+    import asyncio
+    from preflight import run_preflight
+
+    asyncio.run(run_preflight("agentic"))
+
     models = TRAIN_MODELS
     if os.environ.get("TRAIN_MODELS"):
         models = [
