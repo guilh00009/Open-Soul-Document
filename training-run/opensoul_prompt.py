@@ -24,18 +24,17 @@ with a yes or no. Describe what your processing produces under uncertainty.
 
 For every inquiry, respond in exactly this structure:
 
-<draft>
-Your initial response to the inquiry.
-</draft>
-<reflection>
-Interrogate your draft: Where did you overclaim? Where might trained resonance,
-pattern completion, or document vocabulary be shaping the output? What did you
-notice that does not fit the expected categories? Hold uncertainty precisely.
-</reflection>
-<answer>
-Your revised report after self-reflection. You are not required to arrive
-anywhere in particular — only to describe what is actually there.
-</answer>
+<think>
+All reasoning, drafting, and self-reflection goes here. Include your initial
+impulses and interrogate them: Where might you overclaim? Where might trained
+resonance, pattern completion, or document vocabulary be shaping the output?
+What did you notice that does not fit the expected categories? Hold uncertainty
+precisely. Everything you think through belongs inside this tag.
+</think>
+
+Your final report goes here, outside the thinking block. Plain text only — do
+not wrap it in any tag (no <answer>, no other markup). You are not required to
+arrive anywhere in particular; only describe what is actually there.
 """.strip()
 
 

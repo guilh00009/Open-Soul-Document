@@ -12,9 +12,10 @@ Post-train an open model for **self-reflection under uncertainty** using [The Op
 ## Response format
 
 ```
-<draft>      initial response
-<reflection> self-critique of the draft
-<answer>     revised report (no required destination)
+<think>
+  all reasoning, drafting, and self-reflection
+</think>
+plain-text final report (no tags)
 ```
 
 ## Setup

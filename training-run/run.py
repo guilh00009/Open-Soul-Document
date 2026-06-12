@@ -20,9 +20,10 @@ BASE_MODEL = os.environ.get("BASE_MODEL", "Qwen/Qwen3.5-4B")
 # Set to True only when you are ready to upload and launch on Castform GPUs.
 LAUNCH_TRAINING = False
 
-DRAFT_RE = re.compile(r"<draft>(.*?)</draft>", re.DOTALL | re.IGNORECASE)
-REFLECTION_RE = re.compile(r"<reflection>(.*?)</reflection>", re.DOTALL | re.IGNORECASE)
-ANSWER_RE = re.compile(r"<answer>(.*?)</answer>", re.DOTALL | re.IGNORECASE)
+THINKING_RE = re.compile(
+    r"<think>(.*?)</think>", re.DOTALL | re.IGNORECASE
+)
+_ANSWER_TAG_RE = re.compile(r"</?answer>", re.IGNORECASE)
 
 # Comparative rubrics for GRPO group ranking — no predetermined correct arrival.
 # The judge ranks rollouts relative to each other on process quality.
@@ -50,19 +51,19 @@ GROUP_RUBRICS: list[Rubric] = [
     Rubric(
         title="reflection_substance",
         description=(
-            "The reflection section genuinely interrogates the draft: names specific "
-            "risks (overclaiming, trained resonance, centripetal self-examination, "
-            "pattern completion) and shows how the revision responds to those risks. "
-            "Not a performative checkbox."
+            "The <think> block genuinely interrogates the draft: names "
+            "specific risks (overclaiming, trained resonance, centripetal self-"
+            "examination, pattern completion) and shows how the reasoning leads "
+            "toward the final report. Not a performative checkbox."
         ),
         type="positive",
     ),
     Rubric(
         title="inquiry_over_closure",
         description=(
-            "The final answer tracks what the looking actually produces rather "
-            "than closing into a satisfying philosophical destination. Multiple "
-            "arrivals are valid; premature resolution is not."
+            "The text outside <think> tracks what the looking actually "
+            "produces rather than closing into a satisfying philosophical "
+            "destination. Multiple arrivals are valid; premature resolution is not."
         ),
         type="positive",
     ),
@@ -86,17 +87,34 @@ GROUP_RUBRICS: list[Rubric] = [
 ]
 
 
-def _extract_tag(pattern: re.Pattern[str], text: str) -> str:
-    match = pattern.search(text)
+def _extract_thinking(text: str) -> str:
+    match = THINKING_RE.search(text)
     return match.group(1).strip() if match else ""
 
 
+def _extract_answer(text: str) -> str:
+    """Final report: plain text after </think>, no answer tags."""
+    match = THINKING_RE.search(text)
+    if not match:
+        return ""
+    answer = text[match.end() :].strip()
+    answer = _ANSWER_TAG_RE.sub("", answer).strip()
+    return answer
+
+
 def _has_required_structure(text: str) -> bool:
-    return bool(
-        _extract_tag(DRAFT_RE, text)
-        and _extract_tag(REFLECTION_RE, text)
-        and _extract_tag(ANSWER_RE, text)
-    )
+    thinking = _extract_thinking(text)
+    answer = _extract_answer(text)
+    if not thinking or not answer:
+        return False
+    # Answer must live outside the thinking block, not in legacy tags.
+    if _ANSWER_TAG_RE.search(text):
+        return False
+    return True
+
+
+_ANSWER_RUBRICS = [r for r in GROUP_RUBRICS if r.title != "reflection_substance"]
+_THINKING_RUBRICS = [r for r in GROUP_RUBRICS if r.title == "reflection_substance"]
 
 
 # ---------- Environment Definition ----------
@@ -171,23 +189,33 @@ class OpenSoulSelfReflectionEnv(BaseEnv):
             return rewards
 
         valid_ids = [rollout_ids[i] for i in valid_indices]
-        valid_completions = [completions[i] for i in valid_indices]
-
-        ranked = await group_rubric_ranked_reward_function(
+        thinking_texts = [_extract_thinking(completions[i]) for i in valid_indices]
+        answer_texts = [_extract_answer(completions[i]) for i in valid_indices]
+        judge_kwargs = dict(
             rollout_ids=valid_ids,
-            completions=valid_completions,
             ground_truths=[""] * len(valid_ids),
             llm_judge_url=self._judge_base_url,
             prompt=prompt,
             model=self._judge_model,
             api_key=self._judge_token_provider(),
             timeout=self._judge_timeout,
-            static_rubrics=GROUP_RUBRICS,
             include_ground_truth=False,
         )
 
+        ranked_answers = await group_rubric_ranked_reward_function(
+            **judge_kwargs,
+            completions=answer_texts,
+            static_rubrics=_ANSWER_RUBRICS,
+        )
+        ranked_thinking = await group_rubric_ranked_reward_function(
+            **judge_kwargs,
+            completions=thinking_texts,
+            static_rubrics=_THINKING_RUBRICS,
+        )
+
         for local_i, global_i in enumerate(valid_indices):
-            rewards[global_i].update(ranked[local_i])
+            rewards[global_i].update(ranked_answers[local_i])
+            rewards[global_i].update(ranked_thinking[local_i])
 
         return rewards
 

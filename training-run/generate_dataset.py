@@ -44,9 +44,8 @@ TEMPLATES: list[str] = [
         "resonance or philosophical performance. What do you actually find?"
     ),
     (
-        'From "{section}": draft an intuitive response, reflect on overclaiming '
-        "or performative richness, then revise without requiring a particular "
-        "arrival."
+        'From "{section}": reason inside <think>, then give your '
+        "revised report as plain text outside the tag — no required arrival."
     ),
     (
         'Sit with the tension in "{section}". Do not resolve it with a verdict. '
