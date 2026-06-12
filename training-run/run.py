@@ -7,6 +7,7 @@ import friction
 import opensoul_env
 import opensoul_prompt
 import rewards
+import training_utils
 from opensoul_env import OpenSoulSelfReflectionEnv
 
 RUN_NAME = "opensoul-v5-self-reflection-v2"
@@ -20,7 +21,7 @@ TRAIN_MODELS: list[tuple[str, str]] = [
 LAUNCH_TRAINING = os.environ.get("LAUNCH_TRAINING", "0").lower() in ("1", "true", "yes")
 
 pip_dependencies = ["openai"]
-local_modules = [opensoul_env, opensoul_prompt, rewards, friction]
+local_modules = [opensoul_env, opensoul_prompt, rewards, friction, training_utils]
 
 train_data = [json.loads(line) for line in open("train_dataset.jsonl")]
 eval_data = [json.loads(line) for line in open("eval_dataset.jsonl")]
@@ -38,6 +39,7 @@ def preview_setup() -> None:
     print(f"Adaptive rubrics: {opensoul_env.USE_ADAPTIVE_RUBRICS}")
     print(f"Diversity scale:  {opensoul_env.USE_DIVERSITY_SCALING}")
     print(f"Holistic ranking: {opensoul_env.USE_HOLISTIC_RANKING}")
+    print(f"DEPO gating:      {opensoul_env.USE_DEPO}")
     if LAUNCH_TRAINING:
         print("Models to train:")
         for model_id, run_label in TRAIN_MODELS:

@@ -22,10 +22,12 @@ from benchmax.rubrics import (
 from benchmax import config
 
 import rewards
+import training_utils
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_JUDGE_MODEL = os.environ.get("JUDGE_MODEL", "gpt-5.4-mini")
+USE_DEPO = os.environ.get("USE_DEPO", "1").lower() in ("1", "true", "yes")
 RUBRIC_GENERATION_MODEL = os.environ.get("RUBRIC_GEN_MODEL", DEFAULT_JUDGE_MODEL)
 USE_ADAPTIVE_RUBRICS = os.environ.get("USE_ADAPTIVE_RUBRICS", "1").lower() in ("1", "true", "yes")
 USE_DIVERSITY_SCALING = os.environ.get("USE_DIVERSITY_SCALING", "1").lower() in ("1", "true", "yes")
@@ -178,8 +180,23 @@ class OpenSoulSelfReflectionEnv(BaseEnv):
                 valid_indices.append(i)
             rewards_out.append(per)
 
+        training_utils.annotate_group_signal(rewards_out, primary_key="format")
+
         if len(valid_indices) < 2:
             return rewards_out
+
+        if USE_DEPO:
+            gate_scores = [rewards_out[i].get("format", 0.0) for i in valid_indices]
+            if not training_utils.has_group_learning_signal(gate_scores):
+                return rewards_out
+
+        depo_scale = (
+            training_utils.depo_group_scale(
+                [rewards_out[i].get("format", 0.0) for i in valid_indices]
+            )
+            if USE_DEPO
+            else 1.0
+        )
 
         valid_ids = [rollout_ids[i] for i in valid_indices]
         thinking_texts = [rewards.extract_thinking(completions[i]) for i in valid_indices]
@@ -250,6 +267,25 @@ class OpenSoulSelfReflectionEnv(BaseEnv):
             ):
                 merged.update(src)
             merged_valid.append(merged)
+
+        if USE_DEPO and depo_scale < 1.0:
+            skip = frozenset(
+                {
+                    "format",
+                    "hallucination_gate",
+                    "consistency_gate",
+                    "conciseness_gate",
+                    "boilerplate_gate",
+                    "rubric_gaming_gate",
+                    "pushback_engaged",
+                    "group_learning_signal",
+                    "depo_scale",
+                }
+            )
+            merged_valid = [
+                training_utils.scale_merged_rewards(m, depo_scale, skip_keys=skip)
+                for m in merged_valid
+            ]
 
         if self._use_diversity_scaling:
             diversity_texts = [

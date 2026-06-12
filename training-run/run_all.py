@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Launch all training tracks: Open Soul self-reflection + agentic capabilities.
+"""Launch all training tracks: Open Soul + agentic + code capabilities.
 
 Usage:
   cd training-run
   python generate_dataset.py
   python generate_agentic_dataset.py
+  python generate_code_dataset.py
   LAUNCH_TRAINING=1 python run_all.py
-  LAUNCH_TRAINING=1 python run_all.py --tracks opensoul
-  LAUNCH_TRAINING=1 python run_all.py --tracks agentic
+  LAUNCH_TRAINING=1 python run_all.py --tracks opensoul,agentic,code
 """
 
 from __future__ import annotations
@@ -23,8 +23,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Launch multi-track Castform training")
     parser.add_argument(
         "--tracks",
-        default="opensoul,agentic",
-        help="Comma-separated: opensoul, agentic",
+        default="opensoul,agentic,code",
+        help="Comma-separated: opensoul, agentic, code",
     )
     args = parser.parse_args()
     tracks = {t.strip() for t in args.tracks.split(",") if t.strip()}
@@ -38,6 +38,8 @@ def main() -> None:
         scripts.append("run.py")
     if "agentic" in tracks:
         scripts.append("run_agentic.py")
+    if "code" in tracks:
+        scripts.append("run_code.py")
 
     if not scripts:
         print("No tracks selected.", file=sys.stderr)

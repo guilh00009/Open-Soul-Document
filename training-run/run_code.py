@@ -1,17 +1,15 @@
-# Agentic capabilities training launcher (Hermes / OpenClaw patterns)
+# Code capabilities training launcher (RLVR / verifiable unit tests)
 import dataclasses
 import json
 import os
 
-import agentic_env
-import agentic_rewards
-import agentic_tools
-import agentic_workspace
-import tool_call_helpers
+import code_env
+import code_rewards
+import code_sandbox
 import training_utils
-from agentic_env import AgenticCapabilitiesEnv
+from code_env import CodeCapabilitiesEnv
 
-RUN_NAME = "agentic-capabilities-v1"
+RUN_NAME = "code-capabilities-v1"
 BASE_MODEL = os.environ.get("BASE_MODEL", "Qwen/Qwen3.5-4B")
 
 TRAIN_MODELS: list[tuple[str, str]] = [
@@ -21,34 +19,27 @@ TRAIN_MODELS: list[tuple[str, str]] = [
 
 LAUNCH_TRAINING = os.environ.get("LAUNCH_TRAINING", "0").lower() in ("1", "true", "yes")
 
-pip_dependencies = ["openai"]
-local_modules = [
-    agentic_env,
-    agentic_rewards,
-    agentic_tools,
-    agentic_workspace,
-    tool_call_helpers,
-    training_utils,
-]
+pip_dependencies: list[str] = []
+local_modules = [code_env, code_rewards, code_sandbox, training_utils]
 
-train_data = [json.loads(line) for line in open("agentic_train_dataset.jsonl")]
-eval_data = [json.loads(line) for line in open("agentic_eval_dataset.jsonl")]
+train_data = [json.loads(line) for line in open("code_train_dataset.jsonl")]
+eval_data = [json.loads(line) for line in open("code_eval_dataset.jsonl")]
 
 
 def preview_setup() -> None:
     from list_models import fetch_launch_args
 
-    print(f"Run name:     {RUN_NAME}")
-    print(f"Train rows:   {len(train_data)}")
-    print(f"Eval rows:    {len(eval_data)}")
-    print(f"Tools:        {len(agentic_tools.TOOL_DEFINITIONS)}")
-    print(f"Max turns:    {AgenticCapabilitiesEnv.recommended_max_turns}")
-    print(f"Launch:       {LAUNCH_TRAINING}")
-    print(f"DEPO gating:  {agentic_env.USE_DEPO}")
-    cats = {}
+    print(f"Run name:       {RUN_NAME}")
+    print(f"Train rows:     {len(train_data)}")
+    print(f"Eval rows:      {len(eval_data)}")
+    print(f"Max turns:      {CodeCapabilitiesEnv.recommended_max_turns}")
+    print(f"DEPO gating:    {code_env.USE_DEPO}")
+    print(f"Pass-rate RL:   {code_rewards.USE_PASS_RATE_REWARD}")
+    print(f"Launch:         {LAUNCH_TRAINING}")
+    cats: dict[str, int] = {}
     for row in train_data:
         cats[row.get("category", "?")] = cats.get(row.get("category", "?"), 0) + 1
-    print(f"Categories:   {cats}")
+    print(f"Categories:     {cats}")
     print()
     args = fetch_launch_args()
     spec = next((a for a in args if a["name"] == "model"), None)
@@ -80,7 +71,7 @@ if __name__ == "__main__":
         ]
 
     if not validate_env(
-        env_class=AgenticCapabilitiesEnv,
+        env_class=CodeCapabilitiesEnv,
         env_args={},
         train_dataset=train_data,
         eval_dataset=eval_data,
@@ -88,10 +79,10 @@ if __name__ == "__main__":
         pip_dependencies=pip_dependencies,
         local_modules=local_modules,
     ):
-        raise SystemExit("Agentic validation failed.")
+        raise SystemExit("Code env validation failed.")
 
     uploaded = upload_training_run(
-        env_class=AgenticCapabilitiesEnv,
+        env_class=CodeCapabilitiesEnv,
         train_dataset=train_data,
         eval_dataset=eval_data,
         run_name=RUN_NAME,
@@ -107,11 +98,11 @@ if __name__ == "__main__":
             name=label,
             launcher_args={
                 "model": model_id,
-                "max_rollout_len": 16000,
-                "max_turns": 8,
-                "group_size": 9,
-                "learning_rate": 1e-5,
-                "num_epochs": 5,
+                "max_rollout_len": 8192,
+                "max_turns": 1,
+                "group_size": 12,
+                "learning_rate": 5e-6,
+                "num_epochs": 4,
                 "lora_rank": 128,
                 "lora_alpha": 256,
             },

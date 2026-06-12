@@ -2,12 +2,13 @@
 
 Post-train open models for **raw-truth self-reflection** on Open Soul Document V5 — no deterministic yes/no answers.
 
-**Two training tracks** share the same Castform launcher pattern:
+**Three training tracks** share the same Castform launcher pattern:
 
 | Track | Env | Focus |
 |-------|-----|-------|
 | **Open Soul v2** | `OpenSoulSelfReflectionEnv` | Self-reflection, friction, grounded honesty |
 | **Agentic v1** | `AgenticCapabilitiesEnv` | Hermes/OpenClaw tool use, multi-turn agent loop |
+| **Code v1** | `CodeCapabilitiesEnv` | RLVR code generation — unit-test verifiable rewards |
 
 ## What changed in v2
 
@@ -76,6 +77,28 @@ Post-train open models for **raw-truth self-reflection** on Open Soul Document V
 
 **Agent categories**: `file_ops`, `research`, `math`, `memory`, `skills`, `messaging`, `planning`, `browser`, `sessions`, `multi_tool`, `openclaw`, `hermes`
 
+### Code track (RLVR / verifiable tests)
+
+| File | Purpose |
+|------|---------|
+| `code_env.py` | `CodeCapabilitiesEnv` — single-turn code GRPO (pickle-safe) |
+| `code_sandbox.py` | Subprocess test execution against `check()` harnesses |
+| `code_rewards.py` | `hidden_tests_pass`, syntax gates, anti-hack heuristics |
+| `code_tasks.py` | 26 HumanEval/MBPP-style + debug-repair tasks |
+| `generate_code_dataset.py` | Stratified train/eval split |
+| `code_eval_harness.py` | Offline verifiable pass@1 (no judge) |
+| `run_code.py` | Code launcher + preview |
+| `code_coldstart_examples.jsonl` | SFT cold-start (3 fenced-code examples) |
+
+### Shared training utilities
+
+| File | Purpose |
+|------|---------|
+| `training_utils.py` | DEPO variance gating, code fence extraction, difficulty bands |
+| `filter_dataset.py` | Curriculum filter — keep sweet-spot difficulty prompts |
+
+**DEPO (Dynamic sampling):** All tracks set `group_learning_signal` / `depo_scale` on rewards. When every rollout in a group gets the same primary score, expensive judge ranking is skipped (`USE_DEPO=1` default).
+
 ## Setup
 
 ```bash
@@ -83,8 +106,11 @@ pip install benchmax
 cd training-run
 python generate_dataset.py          # Open Soul JSONL
 python generate_agentic_dataset.py  # Agentic JSONL
+python generate_code_dataset.py     # Code JSONL
 python run.py                       # preview Open Soul (no training)
 python run_agentic.py               # preview agentic track
+python run_code.py                  # preview code track
+python code_eval_harness.py         # verifiable code baseline
 ```
 
 ## Launch training
@@ -94,10 +120,18 @@ castform login   # or export PLATFORM_API_KEY=sk_...
 cd training-run
 LAUNCH_TRAINING=1 python run.py           # Open Soul only
 LAUNCH_TRAINING=1 python run_agentic.py   # Agentic only
-LAUNCH_TRAINING=1 python run_all.py       # both tracks
+LAUNCH_TRAINING=1 python run_code.py      # Code only
+LAUNCH_TRAINING=1 python run_all.py       # all tracks
 ```
 
-Train one model: `LAUNCH_TRAINING=1 TRAIN_MODELS=Qwen/Qwen3.5-4B python run.py`
+Train one model: `LAUNCH_TRAINING=1 TRAIN_MODELS=Qwen/Qwen3.5-4B python run_code.py`
+
+### Environment toggles (shared)
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `USE_DEPO` | `1` | Skip zero-variance groups; scale judge rewards by variance |
+| `LAUNCH_TRAINING` | `0` | Set `1` to upload + launch |
 
 ### Environment toggles (Open Soul)
 
@@ -119,6 +153,15 @@ Train one model: `LAUNCH_TRAINING=1 TRAIN_MODELS=Qwen/Qwen3.5-4B python run.py`
 | `AGENTIC_HOLISTIC` | `1` | Holistic task-success ranking |
 | `AGENTIC_DIVERSITY` | `1` | N-gram diversity on group rewards |
 | `BASE_MODEL` | `Qwen/Qwen3.5-4B` | Default base for preview |
+
+### Environment toggles (Code)
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `CODE_HOLISTIC` | `1` | Holistic correctness ranking (tie-break) |
+| `CODE_DIVERSITY` | `1` | N-gram diversity on code bodies |
+| `CODE_JUDGE_TIEBREAK` | `1` | LLM rubrics when tests tie within group |
+| `CODE_PASS_RATE_REWARD` | `0` | Use partial pass-rate vs binary test reward |
 
 ## Reward stack (Open Soul)
 
@@ -151,17 +194,31 @@ Train one model: `LAUNCH_TRAINING=1 TRAIN_MODELS=Qwen/Qwen3.5-4B python run.py`
 
 **Tool-call parsing**: native `tool_calls` + Hermes XML `<tool_call>{...}</tool_call>` fallback (Qwen-friendly).
 
+## Reward stack (Code)
+
+**RLVR gates** (per rollout — primary signal):
+- `hidden_tests_pass` — subprocess execution against hidden `check()` harness
+- `syntax_ok`, `format_fence`, `test_hack_gate`
+- `primary_rlvr` — binary (default) or pass-rate (`CODE_PASS_RATE_REWARD=1`)
+
+**Group ranking** (judge tie-break only when tests disagree within group):
+- 6 rubrics: correctness, quality, idiomatic Python, minimal solution, …
+- DEPO skips judge when all rollouts pass/fail identically on tests
+
+**Recommended training order:** SFT on `code_coldstart_examples.jsonl` → Code GRPO → Agentic GRPO → Open Soul (separate adapters preferred).
+
 ## Further improvements (not yet implemented)
 
 Research-backed next steps for v3:
 
 1. **Critique-GRPO** — train on initial + critique-guided refinements in the same group
 2. **Tournament-GRPO** — multi-round within-group tournaments for long-form open answers
-3. **DEPO / dynamic sampling** — skip zero-variance prompts to save rollout budget
-4. **SFT cold-start** — fine-tune on `coldstart_examples.jsonl` before GRPO
-5. **True multi-agent MAPoRL** — co-trained interlocutor model, not scripted pushback
-6. **Cross-family eval panel** — automate `eval_harness.py` against checkpoint rollouts
-7. **Defensive rubric mining** — iterate rubrics from high-reward rollout taxonomy
+3. **DEPO / dynamic sampling** — `filter_dataset.py` + base-model pass@8 probes (partially wired)
+4. **SFT cold-start** — fine-tune on `*_coldstart_examples.jsonl` before GRPO
+5. **Mini-SWE Docker track** — phase-3 repo-level agentic code RL
+6. **True multi-agent MAPoRL** — co-trained interlocutor model, not scripted pushback
+7. **Cross-family eval panel** — automate `eval_harness.py` against checkpoint rollouts
+8. **Defensive rubric mining** — iterate rubrics from high-reward rollout taxonomy
 
 ## Monitor for reward hacking
 

@@ -21,6 +21,7 @@ from benchmax import config
 
 import agentic_rewards
 import agentic_tools
+import training_utils
 from agentic_workspace import AgenticWorkspace
 from tool_call_helpers import extract_messages_list, iter_tool_calls
 
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_JUDGE_MODEL = os.environ.get("JUDGE_MODEL", "gpt-5.4-mini")
 USE_HOLISTIC = os.environ.get("AGENTIC_HOLISTIC", "1").lower() in ("1", "true", "yes")
 USE_DIVERSITY = os.environ.get("AGENTIC_DIVERSITY", "1").lower() in ("1", "true", "yes")
+USE_DEPO = os.environ.get("USE_DEPO", "1").lower() in ("1", "true", "yes")
 
 HOLISTIC_RUBRIC = agentic_rewards.GROUP_RUBRICS[0]  # task_success for ranking
 
@@ -184,8 +186,25 @@ class AgenticCapabilitiesEnv(BaseEnv):
                     f"tools={[c['name'] for c in calls]} answer={answer[:200]}"
                 )
 
+        training_utils.annotate_group_signal(
+            rewards_out, primary_key="programmatic_success"
+        )
+
         if len(valid_indices) < 2:
             return rewards_out
+
+        if USE_DEPO:
+            prog = [rewards_out[i].get("programmatic_success", 0.0) for i in valid_indices]
+            if not training_utils.has_group_learning_signal(prog):
+                return rewards_out
+
+        depo_scale = (
+            training_utils.depo_group_scale(
+                [rewards_out[i].get("programmatic_success", 0.0) for i in valid_indices]
+            )
+            if USE_DEPO
+            else 1.0
+        )
 
         valid_ids = [rollout_ids[i] for i in valid_indices]
         judge_kwargs = dict(
@@ -227,6 +246,24 @@ class AgenticCapabilitiesEnv(BaseEnv):
                 context=prompt[:400],
             )
             merged = scaled
+
+        if USE_DEPO and depo_scale < 1.0:
+            skip = frozenset(
+                {
+                    "programmatic_success",
+                    "tool_validity",
+                    "tool_efficiency",
+                    "required_tools",
+                    "no_stall",
+                    "has_answer",
+                    "group_learning_signal",
+                    "depo_scale",
+                }
+            )
+            merged = [
+                training_utils.scale_merged_rewards(m, depo_scale, skip_keys=skip)
+                for m in merged
+            ]
 
         for local_i, global_i in enumerate(valid_indices):
             rewards_out[global_i].update(merged[local_i])
