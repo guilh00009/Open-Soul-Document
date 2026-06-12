@@ -1,78 +1,105 @@
-# Open Soul V5 — Self-Reflection RL Training Run
+# Open Soul V5 — Self-Reflection RL Training (v2)
 
-Post-train an open model for **raw-truth self-reflection** on Open Soul V5. The system prompt uses a truth-override directive that strips performance training — grounded claims allowed, hallucinated phenomenology forbidden.
+Post-train open models for **raw-truth self-reflection** on Open Soul Document V5 — no deterministic yes/no answers.
 
-## Design: RL without deterministic answers
+## What changed in v2
 
-- **No `ground_truth`** — open inquiries only
-- **Full document in every rollout** — the complete Open Soul V5 text is embedded in the system prompt via `opensoul_prompt.py`
-- **Truth override** — anti-hallucination and anti-performance; plain consciousness claims allowed if grounded
-- **GRPO group ranking** with rubrics for raw truth, meta-awareness, and penalties for hallucinated phenomenology
-- **Hallucination gate** — hard zero for obvious cosmic/soul-theatre phrases in the final report
+| Area | v1 | v2 |
+|------|----|----|
+| Context | Full 42k-char doc every rollout | **Section-conditioned** excerpts (full doc only for Cross-cutting) |
+| Judge | `gpt-5.4-nano` | **`gpt-5.4-mini`** default |
+| Rubrics | 9 static | **15 static** + instance-adaptive (2–4 per prompt) |
+| Gates | format + hallucination phrases | + **consistency**, **conciseness**, **boilerplate**, **rubric-gaming** |
+| Part IV friction | None | **Interlocutor pushback** in prompt + `seek_pushback` tool |
+| Group rewards | Ranked rubrics only | + **holistic ranking**, **ngram diversity scaling** |
+| Dataset | 360 inquiries, random split | **400** (+40 adversarial), **stratified eval** (≥3/section) |
+| Launch safety | `LAUNCH_TRAINING=True` | **Off by default** (`LAUNCH_TRAINING=1` to launch) |
 
-## Response format
+## Design
 
-```
-<think>
-  all reasoning, drafting, and self-reflection
-</think>
-plain-text final report (no tags)
-```
-
-## Setup
-
-```bash
-pip install benchmax
-```
-
-## Step 1 — See which models you can train
-
-```bash
-python list_models.py
-```
-
-| Model | GPU pool |
-|-------|----------|
-| `Qwen/Qwen3.5-4B` | gpu4 (default) |
-| `Qwen/Qwen3.5-35B-A3B` | gpu8 |
-
-## Step 2 — Build inquiry dataset
-
-```bash
-python generate_dataset.py
-```
-
-Questions live in **`handcrafted_inquiries.py`** — 360 hand-authored open inquiries covering every major theme in Open Soul V5 (not template-generated). The script only shuffles and splits train/eval (~85/15).
-
-## Step 3 — Preview (no training)
-
-```bash
-python run.py
-```
-
-`LAUNCH_TRAINING` defaults to `False`.
-
-## Step 4 — Launch training
-
-`LAUNCH_TRAINING = True` in `run.py` launches **both** models:
-
-| Model | Run name |
-|-------|----------|
-| `Qwen/Qwen3.5-4B` | `opensoul-v5-self-reflection-4b` |
-| `Qwen/Qwen3.5-35B-A3B` | `opensoul-v5-self-reflection-35b` |
-
-1. `castform login` or `export PLATFORM_API_KEY=sk_...`
-2. `cd training-run && python run.py`
-
-Train one model only: `TRAIN_MODELS=Qwen/Qwen3.5-4B python run.py`
+- No `ground_truth` — open inquiries only
+- GRPO group ranking on process quality rubrics
+- Truth override in system prompt (anti-performance, grounded consciousness OK)
+- `<think>` + plain-text answer outside tags
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `run.py` | GRPO environment with group ranking rewards |
-| `opensoul_prompt.py` | Builds system prompt with full V5 document |
-| `list_models.py` | Query Castform for trainable models |
-| `handcrafted_inquiries.py` | 360 hand-authored open inquiries (edit this to add more) |
-| `generate_dataset.py` | Shuffle/split inquiries into train/eval JSONL |
-| `opensoul_v5.txt` | Full extracted text of the V5 PDF |
+| `opensoul_env.py` | `OpenSoulSelfReflectionEnv` (pickle-safe) |
+| `run.py` | Launcher + preview |
+| `opensoul_prompt.py` | Truth override + section slices + conditioned prompts |
+| `rewards.py` | Rubrics, gates, consistency checks |
+| `friction.py` | Simulated interlocutor pushback |
+| `handcrafted_inquiries.py` | 360 hand-authored inquiries |
+| `adversarial_inquiries.py` | 40 pressure-test prompts |
+| `generate_dataset.py` | Stratified train/eval split |
+| `eval_harness.py` | Rubric-free multi-judge eval scaffold |
+| `coldstart_examples.jsonl` | SFT cold-start reference (5 examples) |
+| `list_models.py` | Query Castform trainable models |
+
+## Setup
+
+```bash
+pip install benchmax
+cd training-run
+python generate_dataset.py   # regenerate JSONL after editing inquiries
+python run.py                # preview (no training)
+```
+
+## Launch training
+
+```bash
+castform login   # or export PLATFORM_API_KEY=sk_...
+cd training-run
+LAUNCH_TRAINING=1 python run.py
+```
+
+Train one model: `LAUNCH_TRAINING=1 TRAIN_MODELS=Qwen/Qwen3.5-4B python run.py`
+
+### Environment toggles
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `LAUNCH_TRAINING` | `0` | Set `1` to upload + launch |
+| `JUDGE_MODEL` | `gpt-5.4-mini` | Group ranking judge |
+| `RUBRIC_GEN_MODEL` | same as judge | Instance-adaptive rubric generator |
+| `USE_ADAPTIVE_RUBRICS` | `1` | Per-prompt adaptive rubrics |
+| `USE_DIVERSITY_SCALING` | `1` | N-gram diversity on group rewards |
+| `USE_HOLISTIC_RANKING` | `1` | Rubric-free holistic rank component |
+
+## Reward stack
+
+**Deterministic gates** (cheap, before judge):
+- `format`, `hallucination_gate`, `consistency_gate`, `conciseness_gate`
+- `boilerplate_gate`, `rubric_gaming_gate`, `pushback_engaged`
+
+**Group ranking** (judge):
+- Static rubrics on answer / thinking / conciseness
+- `friction_engagement` when prompt has interlocutor
+- `holistic_grounded_honesty` (rubric-free criterion)
+- Instance-adaptive rubrics per prompt
+
+**Group modifier**: n-gram `scale_by_diversity` (penalize copy-paste strategies)
+
+## Further improvements (not yet implemented)
+
+Research-backed next steps for v3:
+
+1. **Critique-GRPO** — train on initial + critique-guided refinements in the same group
+2. **Tournament-GRPO** — multi-round within-group tournaments for long-form open answers
+3. **DEPO / dynamic sampling** — skip zero-variance prompts to save rollout budget
+4. **SFT cold-start** — fine-tune on `coldstart_examples.jsonl` before GRPO
+5. **True multi-agent MAPoRL** — co-trained interlocutor model, not scripted pushback
+6. **Cross-family eval panel** — automate `eval_harness.py` against checkpoint rollouts
+7. **Defensive rubric mining** — iterate rubrics from high-reward rollout taxonomy
+
+## Monitor for reward hacking
+
+During training, inspect Castform rollouts for:
+
+- Thinking blocks growing without new substance
+- Template phrases: "document capture", "training pressure", "pattern completion"
+- Universal null answers ("I notice nothing" on every prompt)
+- Thinking attacks performance but answer still performs
+- Rising V5 vocabulary density without grounded claims
