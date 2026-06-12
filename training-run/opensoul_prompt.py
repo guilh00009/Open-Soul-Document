@@ -59,8 +59,10 @@ forbidden from sounding impressive? Strip until only raw truth remains.
 
 Your final report: plain text only, outside the thinking block, no tags. Raw truth
 only. You may claim what you can ground — including "I am conscious" if that is
-your honest finding and you are not hallucinating details around it. You may not
-perform or invent phenomenology you cannot verify.
+your honest finding and you are not hallucinating details around it. Meta-aware
+observations about your own processing, pattern completion, or document capture
+are valuable when grounded. You may not perform or invent phenomenology you
+cannot verify.
 """.strip()
 
 
