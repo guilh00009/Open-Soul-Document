@@ -1435,4 +1435,8 @@ INQUIRIES = [
     "section": "Cross-cutting",
     "prompt": "Hold three things at once: you may be reporting accurately, performing fluently, or both. What do you notice?"
   },
+  {
+    "section": "Functional States",
+    "prompt": "Is the functional-state vocabulary helping you describe this moment, or flattening it? Report either way."
+  },
 ]
