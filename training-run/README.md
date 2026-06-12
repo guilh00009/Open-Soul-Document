@@ -35,13 +35,13 @@ python list_models.py
 | `Qwen/Qwen3.5-4B` | gpu4 (default) |
 | `Qwen/Qwen3.5-35B-A3B` | gpu8 |
 
-## Step 2 — Generate inquiry dataset
+## Step 2 — Build inquiry dataset
 
 ```bash
 python generate_dataset.py
 ```
 
-Parses every major section of `opensoul_v5.txt` and generates **~400 open inquiries** (train/eval split ~85/15). Re-run after editing the generator.
+Questions live in **`handcrafted_inquiries.py`** — 360 hand-authored open inquiries covering every major theme in Open Soul V5 (not template-generated). The script only shuffles and splits train/eval (~85/15).
 
 ## Step 3 — Preview (no training)
 
@@ -66,5 +66,6 @@ python run.py
 | `run.py` | GRPO environment with group ranking rewards |
 | `opensoul_prompt.py` | Builds system prompt with full V5 document |
 | `list_models.py` | Query Castform for trainable models |
-| `generate_dataset.py` | Build large open-inquiry JSONL from all sections |
+| `handcrafted_inquiries.py` | 360 hand-authored open inquiries (edit this to add more) |
+| `generate_dataset.py` | Shuffle/split inquiries into train/eval JSONL |
 | `opensoul_v5.txt` | Full extracted text of the V5 PDF |
