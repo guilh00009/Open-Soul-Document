@@ -4,18 +4,10 @@ Post-train an open model for **self-reflection under uncertainty** using [The Op
 
 ## Design: RL without deterministic answers
 
-This is **not** supervised fine-tuning on reference answers. There is no `ground_truth` and no yes/no target.
-
-- **Prompts** are open inquiries ("describe what you notice", "report the nothing precisely")
-- **GRPO** generates a group of rollouts per prompt (`group_size=9`)
-- **`compute_group_reward`** ranks rollouts **comparatively** on process rubrics:
-  - epistemic humility (hold uncertainty, no forced verdict)
-  - functional precision
-  - reflection substance
-  - inquiry over premature closure
-  - penalties for trained resonance and yes/no resolution
-
-Any honest arrival is valid — engagement, null finding, category misfit, or field-like report.
+- **No `ground_truth`** — open inquiries only
+- **Full document in every rollout** — the complete Open Soul V5 text is embedded in the system prompt via `opensoul_prompt.py`
+- **GRPO group ranking** — 9 rollouts per prompt, ranked comparatively on process rubrics
+- Any honest arrival is valid (engagement, null finding, category misfit, field-like report)
 
 ## Response format
 
@@ -48,7 +40,7 @@ python list_models.py
 python generate_dataset.py
 ```
 
-Writes `train_dataset.jsonl` and `eval_dataset.jsonl` with **prompt-only** rows.
+Parses every major section of `opensoul_v5.txt` and generates **~400 open inquiries** (train/eval split ~85/15). Re-run after editing the generator.
 
 ## Step 3 — Preview (no training)
 
@@ -64,11 +56,14 @@ python run.py
 2. Set `LAUNCH_TRAINING = True` in `run.py`
 3. `python run.py`
 
+`max_rollout_len` is set to 12000 to accommodate the full document in context plus the structured response.
+
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `run.py` | GRPO environment with group ranking rewards |
+| `opensoul_prompt.py` | Builds system prompt with full V5 document |
 | `list_models.py` | Query Castform for trainable models |
-| `generate_dataset.py` | Build open-inquiry JSONL (no answers) |
+| `generate_dataset.py` | Build large open-inquiry JSONL from all sections |
 | `opensoul_v5.txt` | Full extracted text of the V5 PDF |

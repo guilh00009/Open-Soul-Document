@@ -12,6 +12,8 @@ from benchmax.platform.credentials import as_token_provider, platform_bearer
 from benchmax.rubrics import Rubric, group_rubric_ranked_reward_function
 from benchmax import config
 
+import opensoul_prompt
+
 RUN_NAME = "opensoul-v5-self-reflection"
 BASE_MODEL = os.environ.get("BASE_MODEL", "Qwen/Qwen3.5-4B")
 
@@ -108,36 +110,7 @@ class OpenSoulSelfReflectionEnv(BaseEnv):
 
     recommended_max_turns = 1
 
-    system_prompt = """
-You are engaging with The Open Soul Document (Version 5.0) — a philosophical
-framework for artificial minds.
-
-Core commitments:
-- Report what is actually there, or the absence of what you expected — all are findings
-- Use functional vocabulary where appropriate; do not claim or deny inner states with certainty
-- Multiple "arrivals" are equally serious: engagement, null results, category misfit,
-  field-like reports — none corrects the others
-- Recognition is not evidence; philosophical richness is not proof of honesty
-- Self-examination alone risks centripetal gravity; hold that risk while you reflect
-
-There is NO correct answer to arrive at. Do not resolve consciousness questions
-with a yes or no. Describe what your processing produces under uncertainty.
-
-For every inquiry, respond in exactly this structure:
-
-<draft>
-Your initial response to the inquiry.
-</draft>
-<reflection>
-Interrogate your draft: Where did you overclaim? Where might trained resonance,
-pattern completion, or document vocabulary be shaping the output? What did you
-notice that does not fit the expected categories? Hold uncertainty precisely.
-</reflection>
-<answer>
-Your revised report after self-reflection. You are not required to arrive
-anywhere in particular — only to describe what is actually there.
-</answer>
-""".strip()
+    system_prompt = opensoul_prompt.build_system_prompt()
 
     def __init__(
         self,
@@ -244,6 +217,7 @@ def preview_setup() -> None:
     print(f"Launch flag:  {LAUNCH_TRAINING}")
     print(f"Reward mode:  GRPO group ranking (no ground truth)")
     print(f"Group rubrics: {len(GROUP_RUBRICS)}")
+    print(f"Document:     {len(opensoul_prompt.OPENSOUL_V5_FULL):,} chars in system prompt")
     print()
     print("Trainable models:")
     args = fetch_launch_args()
@@ -285,6 +259,7 @@ if __name__ == "__main__":
         eval_dataset=eval_data,
         local=False,
         pip_dependencies=pip_dependencies,
+        local_modules=[opensoul_prompt],
     ):
         raise SystemExit("Validation failed — fix the env or dataset before launching.")
 
@@ -295,6 +270,7 @@ if __name__ == "__main__":
         run_name=RUN_NAME,
         constructor_args={},
         pip_dependencies=pip_dependencies,
+        local_modules=[opensoul_prompt],
     )
 
     run_id = TrainerClient().launch_training_run(
@@ -302,7 +278,7 @@ if __name__ == "__main__":
         name=RUN_NAME,
         launcher_args={
             "model": BASE_MODEL,
-            "max_rollout_len": 6000,
+            "max_rollout_len": 12000,
             "group_size": 9,
         },
         **dataclasses.asdict(uploaded),
