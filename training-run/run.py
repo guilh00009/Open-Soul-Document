@@ -17,8 +17,15 @@ import opensoul_prompt
 RUN_NAME = "opensoul-v5-self-reflection"
 BASE_MODEL = os.environ.get("BASE_MODEL", "Qwen/Qwen3.5-4B")
 
-# Set to True only when you are ready to upload and launch on Castform GPUs.
-LAUNCH_TRAINING = False
+# Models to train when LAUNCH_TRAINING is True. Override with TRAIN_MODELS env
+# (comma-separated HuggingFace ids) to launch a subset.
+TRAIN_MODELS: list[tuple[str, str]] = [
+    ("Qwen/Qwen3.5-4B", f"{RUN_NAME}-4b"),
+    ("Qwen/Qwen3.5-35B-A3B", f"{RUN_NAME}-35b"),
+]
+
+# Set to True to validate, upload, and launch on Castform GPUs.
+LAUNCH_TRAINING = True
 
 THINKING_RE = re.compile(
     r"<think>(.*?)</think>", re.DOTALL | re.IGNORECASE
@@ -305,6 +312,10 @@ def preview_setup() -> None:
     print(f"Train rows:   {len(train_data)}")
     print(f"Eval rows:    {len(eval_data)}")
     print(f"Launch flag:  {LAUNCH_TRAINING}")
+    if LAUNCH_TRAINING:
+        print("Models to train:")
+        for model_id, run_label in TRAIN_MODELS:
+            print(f"  • {model_id} → {run_label}")
     print(f"Reward mode:  GRPO group ranking (no ground truth)")
     print(f"Group rubrics: {len(GROUP_RUBRICS)}")
     print(f"Document:     {len(opensoul_prompt.OPENSOUL_V5_FULL):,} chars in system prompt")
@@ -342,6 +353,16 @@ if __name__ == "__main__":
 
     ensure_session()
 
+    models_to_train = TRAIN_MODELS
+    if os.environ.get("TRAIN_MODELS"):
+        models_to_train = [
+            (m.strip(), f"{RUN_NAME}-{m.split('/')[-1].lower()}")
+            for m in os.environ["TRAIN_MODELS"].split(",")
+            if m.strip()
+        ]
+    elif os.environ.get("BASE_MODEL"):
+        models_to_train = [(os.environ["BASE_MODEL"], RUN_NAME)]
+
     if not validate_env(
         env_class=OpenSoulSelfReflectionEnv,
         env_args={},
@@ -363,14 +384,22 @@ if __name__ == "__main__":
         local_modules=[opensoul_prompt],
     )
 
-    run_id = TrainerClient().launch_training_run(
-        training_run_type="simple",
-        name=RUN_NAME,
-        launcher_args={
-            "model": BASE_MODEL,
-            "max_rollout_len": 12000,
-            "group_size": 9,
-        },
-        **dataclasses.asdict(uploaded),
-    )
-    print(f"Training run: https://app.castform.com/train/{run_id}")
+    trainer = TrainerClient()
+    launched: list[tuple[str, str]] = []
+    for model_id, run_label in models_to_train:
+        run_id = trainer.launch_training_run(
+            training_run_type="simple",
+            name=run_label,
+            launcher_args={
+                "model": model_id,
+                "max_rollout_len": 12000,
+                "group_size": 9,
+            },
+            **dataclasses.asdict(uploaded),
+        )
+        launched.append((model_id, run_id))
+        print(f"Launched {model_id}: https://app.castform.com/train/{run_id}")
+
+    print("\nAll training runs:")
+    for model_id, run_id in launched:
+        print(f"  {model_id} → https://app.castform.com/train/{run_id}")

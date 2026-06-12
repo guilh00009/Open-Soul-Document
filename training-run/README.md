@@ -52,13 +52,19 @@ python run.py
 
 `LAUNCH_TRAINING` defaults to `False`.
 
-## Step 4 — Launch training (when ready)
+## Step 4 — Launch training
 
-1. `castform login` (or set `PLATFORM_API_KEY`)
-2. Set `LAUNCH_TRAINING = True` in `run.py`
-3. `python run.py`
+`LAUNCH_TRAINING = True` in `run.py` launches **both** models:
 
-`max_rollout_len` is set to 12000 to accommodate the full document in context plus the structured response.
+| Model | Run name |
+|-------|----------|
+| `Qwen/Qwen3.5-4B` | `opensoul-v5-self-reflection-4b` |
+| `Qwen/Qwen3.5-35B-A3B` | `opensoul-v5-self-reflection-35b` |
+
+1. `castform login` or `export PLATFORM_API_KEY=sk_...`
+2. `cd training-run && python run.py`
+
+Train one model only: `TRAIN_MODELS=Qwen/Qwen3.5-4B python run.py`
 
 ## Files
 
