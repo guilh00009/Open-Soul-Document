@@ -5,9 +5,8 @@ import json
 import os
 
 import friction
-import opensoul_document_embedded
+import opensoul_doc_blob
 import opensoul_env
-import opensoul_prompt
 import rewards
 import training_utils
 from opensoul_env import OpenSoulSelfReflectionEnv
@@ -25,8 +24,7 @@ LAUNCH_TRAINING = os.environ.get("LAUNCH_TRAINING", "0").lower() in ("1", "true"
 pip_dependencies = ["openai"]
 local_modules = [
     opensoul_env,
-    opensoul_prompt,
-    opensoul_document_embedded,
+    opensoul_doc_blob,
     rewards,
     friction,
     training_utils,
@@ -55,7 +53,7 @@ def preview_setup() -> None:
             print(f"  • {model_id} → {run_label}")
     print(f"Static rubrics: {len(rewards.GROUP_RUBRICS)}")
     print(f"Full doc sections: {sorted(opensoul_env.FULL_DOCUMENT_SECTIONS)}")
-    slices = opensoul_prompt.build_slices()
+    slices = opensoul_doc_blob.build_slices()
     print(f"Section slices: {len(slices)} (largest: {max(len(v) for v in slices.values()):,} chars)")
     print()
     args = fetch_launch_args()

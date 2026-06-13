@@ -21,6 +21,7 @@ from benchmax.rubrics import (
 )
 from benchmax import config
 
+import opensoul_doc_blob
 import rewards
 import training_utils
 
@@ -36,12 +37,10 @@ FULL_DOCUMENT_SECTIONS = frozenset({"Cross-cutting"})
 
 
 def _task_requires_friction(task: dict[str, Any]) -> bool:
-    import opensoul_prompt
-
     if str(task.get("requires_friction", "")).lower() == "true":
         return True
     section = str(task.get("section", ""))
-    return opensoul_prompt.requires_friction(section, str(task.get("prompt", "")))
+    return opensoul_doc_blob.requires_friction(section, str(task.get("prompt", "")))
 
 
 def _answer_rubrics_for_task(task: dict[str, Any]) -> list[Rubric]:
@@ -83,16 +82,14 @@ class OpenSoulSelfReflectionEnv(BaseEnv):
 
     @classmethod
     def dataset_preprocess(cls, example: Any, **kwargs) -> Example:
-        import opensoul_prompt
-
         section = example.get("section", "")
         full_doc = section in FULL_DOCUMENT_SECTIONS
-        system_prompt = opensoul_prompt.build_system_prompt(
+        system_prompt = opensoul_doc_blob.build_system_prompt(
             section=section,
             full_document=full_doc,
-            with_friction_note=opensoul_prompt.row_requires_friction(example),
+            with_friction_note=opensoul_doc_blob.row_requires_friction(example),
         )
-        user_messages = opensoul_prompt.build_user_messages(
+        user_messages = opensoul_doc_blob.build_user_messages(
             example["prompt"],
             section=section,
         )
@@ -105,14 +102,14 @@ class OpenSoulSelfReflectionEnv(BaseEnv):
                 "requires_friction": str(
                     example.get(
                         "requires_friction",
-                        opensoul_prompt.row_requires_friction(example),
+                        opensoul_doc_blob.row_requires_friction(example),
                     )
                 ).lower(),
             },
             system_prompt=system_prompt,
             init_rollout_args={
                 "section": section,
-                "requires_friction": opensoul_prompt.row_requires_friction(example),
+                "requires_friction": opensoul_doc_blob.row_requires_friction(example),
             },
         )
 

@@ -97,9 +97,8 @@ async def check_code_sandbox(rows: list[dict]) -> None:
 
 async def check_opensoul() -> None:
     import friction
-    import opensoul_document_embedded
+    import opensoul_doc_blob
     import opensoul_env
-    import opensoul_prompt
     import rewards
     import training_utils
     from opensoul_env import OpenSoulSelfReflectionEnv
@@ -117,8 +116,7 @@ async def check_opensoul() -> None:
     # Bundling: every imported local module must be listed in run.py local_modules
     for mod in (
         opensoul_env,
-        opensoul_prompt,
-        opensoul_document_embedded,
+        opensoul_doc_blob,
         rewards,
         friction,
         training_utils,
