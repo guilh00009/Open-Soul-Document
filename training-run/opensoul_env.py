@@ -9,7 +9,6 @@ from typing import Any
 
 from benchmax.envs.base_env import BaseEnv
 from benchmax.envs.example_id import make_example
-from benchmax.envs.reward_helpers import extract_completion_text
 from benchmax.envs.types import Example, Messages, ToolDefinition
 from benchmax.platform.credentials import as_token_provider, platform_bearer
 from benchmax.rewards.diversity import DiversityConfig, scale_by_diversity
@@ -21,6 +20,7 @@ from benchmax.rubrics import (
 )
 from benchmax import config
 
+import friction
 import opensoul_doc_blob
 import rewards
 import training_utils
@@ -122,7 +122,7 @@ class OpenSoulSelfReflectionEnv(BaseEnv):
         self._rollout_section.pop(rollout_id, None)
 
     async def compute_reward(self, rollout_id, messages, task=None, **kwargs):
-        text = extract_completion_text(messages)
+        text = rewards.final_assistant_text(messages)
         thinking = rewards.extract_thinking(text)
         answer = rewards.extract_answer(text)
         result: dict[str, float] = {
@@ -158,7 +158,7 @@ class OpenSoulSelfReflectionEnv(BaseEnv):
     ) -> list[dict[str, float]]:
         task = tasks[0] or {}
         prompt = str(task.get("prompt", ""))
-        completions = [extract_completion_text(msgs) or "" for msgs in messages_list]
+        completions = [rewards.final_assistant_text(msgs) or "" for msgs in messages_list]
 
         rewards_out: list[dict[str, float]] = []
         valid_indices: list[int] = []
@@ -382,8 +382,6 @@ class OpenSoulSelfReflectionEnv(BaseEnv):
         ]
 
     async def run_tool(self, rollout_id: str, tool_name: str, **tool_args) -> Any:
-        import friction
-
         if tool_name != "seek_pushback":
             return ""
         self._pushback_used.add(rollout_id)

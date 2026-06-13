@@ -8,7 +8,6 @@ from typing import Any
 
 from benchmax.envs.base_env import BaseEnv
 from benchmax.envs.example_id import make_example
-from benchmax.envs.reward_helpers import extract_completion_text
 from benchmax.envs.types import Example, Messages, ToolDefinition
 from benchmax.platform.credentials import as_token_provider, platform_bearer
 from benchmax.rewards.diversity import DiversityConfig, scale_by_diversity
@@ -19,6 +18,7 @@ from benchmax.rubrics import (
 from benchmax import config
 
 import code_rewards
+import rewards
 import training_utils
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ class CodeCapabilitiesEnv(BaseEnv):
 
     async def compute_reward(self, rollout_id, messages, task=None, **kwargs):
         task = task or {}
-        text = extract_completion_text(messages)
+        text = rewards.final_assistant_text(messages)
         scored = code_rewards.score_hidden_tests(text, task)
         return scored
 
@@ -128,7 +128,7 @@ class CodeCapabilitiesEnv(BaseEnv):
         for i, msgs in enumerate(messages_list):
             per = await self.compute_reward(rollout_ids[i], msgs, task=task)
             rewards_out.append(per)
-            text = extract_completion_text(msgs)
+            text = rewards.final_assistant_text(msgs)
             if per.get("syntax_ok", 0) > 0 and per.get("test_hack_gate", 0) > 0:
                 valid_indices.append(i)
                 code_texts.append(training_utils.extract_python_code(text) or text[:2000])

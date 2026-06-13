@@ -9,7 +9,6 @@ from typing import Any
 
 from benchmax.envs.base_env import BaseEnv
 from benchmax.envs.example_id import make_example
-from benchmax.envs.reward_helpers import extract_completion_text
 from benchmax.envs.types import Example, Messages, ToolDefinition
 from benchmax.platform.credentials import as_token_provider, platform_bearer
 from benchmax.rewards.diversity import DiversityConfig, scale_by_diversity
@@ -23,7 +22,7 @@ import agentic_rewards
 import agentic_tools
 import training_utils
 from agentic_workspace import AgenticWorkspace
-from tool_call_helpers import extract_messages_list, iter_tool_calls
+from tool_call_helpers import extract_final_answer, extract_messages_list, iter_tool_calls
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +182,7 @@ class AgenticCapabilitiesEnv(BaseEnv):
                 and per.get("required_tools", 0) > 0
             ):
                 valid_indices.append(i)
-                answer_texts.append(answer or extract_completion_text(msgs))
+                answer_texts.append(answer or extract_final_answer(msg_list))
                 calls = iter_tool_calls(msg_list)
                 trace_summaries.append(
                     f"tools={[c['name'] for c in calls]} answer={answer[:200]}"

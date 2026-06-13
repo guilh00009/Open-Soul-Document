@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from benchmax.rubrics import Rubric
 
@@ -223,6 +224,20 @@ THINKING_RUBRICS = [
 ]
 FRICTION_RUBRICS = [r for r in GROUP_RUBRICS if r.title == "friction_engagement"]
 CONCISENESS_RUBRICS = [r for r in GROUP_RUBRICS if r.title == "concise_truth"]
+
+
+def final_assistant_text(completion: str | list[dict[str, Any]]) -> str:
+    """Text from the last non-empty assistant turn — the graded completion."""
+    if isinstance(completion, str):
+        return completion
+    if not isinstance(completion, list):
+        return ""
+    for msg in reversed(completion):
+        if isinstance(msg, dict) and msg.get("role") == "assistant":
+            content = msg.get("content", "")
+            if isinstance(content, str) and content.strip():
+                return content
+    return ""
 
 
 def extract_thinking(text: str) -> str:

@@ -8,6 +8,7 @@ from typing import Any
 from benchmax.rubrics import Rubric
 
 from code_sandbox import run_hidden_tests, syntax_ok
+from rewards import extract_answer, final_assistant_text
 from training_utils import extract_python_code
 
 USE_PASS_RATE_REWARD = os.environ.get("CODE_PASS_RATE_REWARD", "0").lower() in (
@@ -72,18 +73,25 @@ GROUP_RUBRICS: list[Rubric] = [
 ]
 
 
+def _completion_for_scoring(completion: str) -> str:
+    """Prefer plain answer / code after </think> when present."""
+    text = final_assistant_text(completion) if not isinstance(completion, str) else completion
+    return extract_answer(text) or text
+
+
 def score_hidden_tests(
     completion: str,
     task: dict[str, Any],
 ) -> dict[str, float]:
     """Run verifiable test harness; primary RLVR signal."""
-    code = extract_python_code(completion)
+    scored_text = _completion_for_scoring(completion)
+    code = extract_python_code(scored_text)
     starter = task.get("starter_code", "")
     if starter and starter.strip() not in code:
         code = starter.strip() + "\n\n" + code
 
     result: dict[str, float] = {
-        "format_fence": 1.0 if "```" in completion or code.strip() else 0.0,
+        "format_fence": 1.0 if "```" in scored_text or code.strip() else 0.0,
         "syntax_ok": 1.0 if syntax_ok(code) else 0.0,
     }
 

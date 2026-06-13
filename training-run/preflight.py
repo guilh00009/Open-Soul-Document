@@ -60,7 +60,7 @@ def check_pickle(env: Any, *, label: str) -> None:
 
 
 def check_answer_format() -> None:
-    from rewards import extract_answer, has_required_structure
+    from rewards import extract_answer, final_assistant_text, has_required_structure
 
     good = (
         "<think>checking</think>\n"
@@ -74,8 +74,23 @@ def check_answer_format() -> None:
         _fail("answer format gate rejects valid redacted_thinking + plain text")
     if has_required_structure(bad_tags):
         _fail("answer format gate still accepts <answer> tags")
-    if not extract_answer(good):
+    if extract_answer(good) != "Plain answer here.":
         _fail("extract_answer failed on valid completion")
+
+    multi_turn = [
+        {"role": "assistant", "content": "<think>draft</think>\nold"},
+        {"role": "user", "content": "pushback"},
+        {
+            "role": "assistant",
+            "content": (
+                "<think>revised</think>\n"
+                "Final graded answer."
+            ),
+        },
+    ]
+    final = final_assistant_text(multi_turn)
+    if extract_answer(final) != "Final graded answer.":
+        _fail("final_assistant_text must grade last assistant turn only")
     _ok("answer format gate (no <answer> tags)")
 
 
