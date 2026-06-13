@@ -1,0 +1,7 @@
+{
+  "examples_built": 4665,
+  "kept_after_filters": 859,
+  "train_count": 773,
+  "eval_count": 86,
+  "max_prompt_chars": 12000
+}
