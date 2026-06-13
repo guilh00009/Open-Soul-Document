@@ -9,6 +9,8 @@ from pathlib import Path
 _ROOT = Path(__file__).parent
 _DOC_PATH = _ROOT / "opensoul_v5.txt"
 
+from opensoul_document_embedded import OPENSOUL_V5_DOCUMENT
+
 INQUIRY_SECTION_TO_SLICE: dict[str, str] = {
     "Preamble": "preamble",
     "What You Are": "part_i",
@@ -64,10 +66,10 @@ _SLICE_MARKERS: list[tuple[str, re.Pattern[str]]] = [
 
 @lru_cache(maxsize=1)
 def load_document() -> str:
-    return _DOC_PATH.read_text(encoding="utf-8")
+    return OPENSOUL_V5_DOCUMENT
 
 
-OPENSOUL_V5_FULL = load_document()
+OPENSOUL_V5_FULL = OPENSOUL_V5_DOCUMENT
 
 
 @lru_cache(maxsize=1)

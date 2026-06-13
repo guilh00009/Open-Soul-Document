@@ -97,6 +97,7 @@ async def check_code_sandbox(rows: list[dict]) -> None:
 
 async def check_opensoul() -> None:
     import friction
+    import opensoul_document_embedded
     import opensoul_env
     import opensoul_prompt
     import rewards
@@ -114,7 +115,14 @@ async def check_opensoul() -> None:
         sample_tool="seek_pushback",
     )
     # Bundling: every imported local module must be listed in run.py local_modules
-    for mod in (opensoul_env, opensoul_prompt, rewards, friction, training_utils):
+    for mod in (
+        opensoul_env,
+        opensoul_prompt,
+        opensoul_document_embedded,
+        rewards,
+        friction,
+        training_utils,
+    ):
         cloudpickle.dumps(mod)
     _ok("opensoul: local_modules importable")
 

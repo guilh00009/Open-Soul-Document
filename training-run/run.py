@@ -5,6 +5,7 @@ import json
 import os
 
 import friction
+import opensoul_document_embedded
 import opensoul_env
 import opensoul_prompt
 import rewards
@@ -22,7 +23,14 @@ TRAIN_MODELS: list[tuple[str, str]] = [
 LAUNCH_TRAINING = os.environ.get("LAUNCH_TRAINING", "0").lower() in ("1", "true", "yes")
 
 pip_dependencies = ["openai"]
-local_modules = [opensoul_env, opensoul_prompt, rewards, friction, training_utils]
+local_modules = [
+    opensoul_env,
+    opensoul_prompt,
+    opensoul_document_embedded,
+    rewards,
+    friction,
+    training_utils,
+]
 
 train_data = [json.loads(line) for line in open("train_dataset.jsonl")]
 eval_data = [json.loads(line) for line in open("eval_dataset.jsonl")]
@@ -91,12 +99,18 @@ if __name__ == "__main__":
     elif os.environ.get("BASE_MODEL"):
         models_to_train = [(os.environ["BASE_MODEL"], RUN_NAME)]
 
+    skip_remote = os.environ.get("SKIP_REMOTE_VALIDATION", "0").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
     if not validate_env(
         env_class=OpenSoulSelfReflectionEnv,
         env_args={},
         train_dataset=train_data,
         eval_dataset=eval_data,
-        local=False,
+        local=skip_remote,
         pip_dependencies=pip_dependencies,
         local_modules=local_modules,
     ):
